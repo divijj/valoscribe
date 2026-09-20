@@ -1321,3 +1321,43 @@ def extract_killfeed_crops(
     except Exception as e:
         typer.secho(f"\nError: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
+
+@app.command(name="minimap-crops")
+
+# def extract_minimap(
+#     video_path: Path = typer.Argument(..., help="Path to the video file to process"),
+#     output_dir: Path = typer.Option(Path("./minimap_crops"),
+#         "--output",
+#         "-o",
+#         help="Output directory for crop images",
+#     ),
+#     config_path: Optional[Path] = typer.Option(
+#         None,
+#         "--config",
+#         "-c",
+#         help="Path to HUD config file (default: champs2025.json)",
+#     ),
+#     entry_index: int = typer.Option(
+#         0,
+#         "--entry",
+#         "-e",
+#         help="Killfeed entry index to extract (0-9, or -1 for all entries)",
+#     ),
+#     start_time: Optional[float] = typer.Option(
+#         None,
+#         "--start",
+#         help="Start time in seconds",
+#     ),
+#     end_time: Optional[float] = typer.Option(
+#         None,
+#         "--end",
+#         help="End time in seconds",
+#     ),
+#     interval: float = typer.Option(
+#         10.0,
+#         "--interval",
+#         "-i",
+#         help="Time interval between samples in seconds (default: 10s)",
+#     ),
+# ) -> None:
+# finish idk 

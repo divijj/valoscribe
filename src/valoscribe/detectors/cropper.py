@@ -327,3 +327,8 @@ class Cropper:
             "player_elements": list(self.regions["individual_player_info"].keys()),
             "player_elements_preround": list(self.regions["individual_player_info_preround"].keys()),
         }
+
+    def crop_minimap(self,frame):
+        self.crop_simple_region(frame,"minimap")
+        #and then idk what to add buddy rip
+        

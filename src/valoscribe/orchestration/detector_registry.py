@@ -19,6 +19,7 @@ from valoscribe.detectors.preround_ultimate_detector import PreroundUltimateDete
 from valoscribe.detectors.ability_detector import AbilityDetector
 from valoscribe.detectors.ultimate_detector import UltimateDetector
 from valoscribe.detectors.killfeed_detector import KillfeedDetector
+from valoscribe.detectors.minimap_detector import MinimapDetector
 from valoscribe.utils.ocr import OCREngine
 from valoscribe.utils.logger import get_logger
 
@@ -73,6 +74,7 @@ class DetectorRegistry:
         self.health_detector = TemplateHealthDetector(self.cropper)
         self.armor_detector = TemplateArmorDetector(self.cropper)
 
+
         log.debug("Template detectors initialized")
 
     def _init_ocr_detectors(self) -> None:
@@ -95,6 +97,7 @@ class DetectorRegistry:
         self.inround_agent_detector = ActiveRoundAgentDetector(self.cropper)
         self.inround_ability_detector = AbilityDetector(self.cropper)
         self.inround_ultimate_detector = UltimateDetector(self.cropper)
+        self.minimap_detector = MinimapDetector(self.cropper)
 
         log.debug("Inround detectors initialized")
 
@@ -156,6 +159,8 @@ class DetectorRegistry:
             "inround_agent": self.inround_agent_detector,
             "inround_ability": self.inround_ability_detector,
             "inround_ultimate": self.inround_ultimate_detector,
+            #minimap 
+            "minimap_detector": self.minimap_detector, #added this
             # Killfeed
             "killfeed": self.killfeed_detector,
         }

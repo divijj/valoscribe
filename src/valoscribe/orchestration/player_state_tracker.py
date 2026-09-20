@@ -70,6 +70,11 @@ class PlayerStateTracker:
             "ability_3": None,
             "ultimate": None,  # Ultimate charges/full status
             "killer": None,  # Agent name of killer (set when killed, cleared on revival/round reset)
+
+            #added
+            "x":None,
+            "y":None,
+            "region":None
         }
 
         # Previous state (for detecting transitions)
@@ -408,3 +413,6 @@ class PlayerStateTracker:
         health = self.current_state.get("health", "?")
 
         return f"PlayerStateTracker({name}, {alive_status}, health={health})"
+
+    def update_position():
+        

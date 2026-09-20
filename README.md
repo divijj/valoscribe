@@ -1,3 +1,26 @@
+FILES TO CHANGE:
+detectors/cropper.py - started
+orchestration/detector_registry.py - done
+orchestration/game_state_manager.py - started
+orchestration/player_state_tracker.py - started
+orchestration/state_validator.py
+orchestration/output_writer.py
+commands/extract.py - started
+commands/detect.py
+config/champs2025_opening_games.json
+pyproject.toml
+tests/test_orchestration/test_output_writer.py, test_player_state_tracker.py
+
+FILES TO ADD:
+detectors/minimap_detector.py - started
+types/detections.py - started
+orchestration/map_locator.py
+config/maps/<map>/  (for each map)
+templates/minimap_agents/{attack,defense}/<agent>.png
+test files:
+tests/test_detectors/test_minimap_detector.py
+tests/test_orchestration/test_map_locator.py
+
 # Valoscribe
 
 **Automated Valorant VOD analysis tool for extracting structured game events and player states from match videos.**
