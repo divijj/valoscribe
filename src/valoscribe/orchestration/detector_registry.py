@@ -160,7 +160,7 @@ class DetectorRegistry:
             "inround_ability": self.inround_ability_detector,
             "inround_ultimate": self.inround_ultimate_detector,
             #minimap 
-            "minimap_detector": self.minimap_detector, #added this
+            "inround_minimap": self.minimap_detector, #added this
             # Killfeed
             "killfeed": self.killfeed_detector,
         }

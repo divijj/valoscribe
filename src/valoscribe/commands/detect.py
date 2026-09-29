@@ -4673,3 +4673,15 @@ def detect_agents_active_vod(
     except Exception as e:
         typer.secho(f"\nError: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
+
+    @app.command(name="minimap")
+    def detect_minimap(
+        video_path: Path = typer.Argument(..., help="Path to the video file to process"),
+        frame_time: float = typer.Option(..., "--time", "-t", help="Timestamp to inspect"),
+        config_path: Optional[Path] = typer.Option(None, "--config", "-c"),
+        map_name: Optional[str] = typer.Option(None, "--map", help="Enable region lookup"),
+        save_path: Optional[Path] = typer.Option(None, "--save"),
+    ) -> None:
+        """Debug minimap detection: draw detected icons and their regions."""
+        # TODO: read the frame, run MinimapDetector.detect(), print agent/side/conf,
+        # draw circles at each detection, and (with --map) label the region via MapLocator.

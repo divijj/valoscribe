@@ -45,6 +45,13 @@ class OutputWriter:
         self.frame_states_initialized = False
         self.event_log_initialized = False
 
+        #position output writer intializating - added
+        self.positions_path = self.output_dir / "minimap_positions.csv"
+        self.positions_file: Optional[object] = None
+        self.positions_writer: Optional[csv.DictWriter] = None
+        self.positions_initialized = False
+
+
         log.info(f"OutputWriter initialized: {output_dir}")
 
     def _get_frame_state_columns(self) -> list[str]:
@@ -201,6 +208,9 @@ class OutputWriter:
             self.frame_states_file.flush()
         if self.event_log_file:
             self.event_log_file.flush()
+        if self.positions_file:
+            self.positions_file.flush()   # added flush() for position
+
 
     def close(self) -> None:
         """Close output files."""
@@ -213,6 +223,10 @@ class OutputWriter:
             self.event_log_file.close()
             self.event_log_file = None
             log.info(f"Closed event_log.jsonl: {self.event_log_path}")
+        if self.positions_file:          # added close() for position
+            self.positions_file.close()
+            self.positions_file = None
+
 
     def __enter__(self):
         """Context manager entry."""
@@ -226,3 +240,16 @@ class OutputWriter:
     def __repr__(self) -> str:
         """String representation."""
         return f"OutputWriter(output_dir={self.output_dir})"
+
+    #initialise and update positions - added 
+    def write_positions(self, rows: list[dict]) -> None:
+        """Append minimap position rows (long format, one row per detected player)."""
+        if not self.positions_initialized:
+            self.positions_file = open(self.positions_path, "w", newline="")
+            self.positions_writer = csv.DictWriter(
+                self.positions_file, fieldnames=self.POSITION_COLUMNS
+            )
+            self.positions_writer.writeheader()
+            self.positions_initialized = True
+
+        self.positions_writer.writerows(rows)

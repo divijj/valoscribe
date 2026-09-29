@@ -122,3 +122,12 @@ class KillEvent(BaseModel):
     headshot: bool = Field(False, description="Whether it was a headshot")
     timestamp_ms: float = Field(..., description="Timestamp in video (milliseconds)")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Detection confidence (0-1)")
+
+class MinimapDetection(BaseModel):
+    """An agent icon detected on the minimap."""
+
+    agent: str = Field(..., description="Agent name (lowercase)")
+    side: str = Field(..., description="'attack' or 'defense'")
+    x_px: float = Field(..., description="Icon centre x within minimap crop")
+    y_px: float = Field(..., description="Icon centre y within minimap crop")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Template match confidence")

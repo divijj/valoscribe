@@ -10,6 +10,7 @@ from valoscribe.utils.logger import get_logger
 log = get_logger(__name__)
 
 
+
 class StateValidator:
     """
     Validates player state transitions and generates events.
@@ -22,6 +23,7 @@ class StateValidator:
 
     Note: Death events are handled in GameStateManager to include player_index field.
     """
+    MOVEMENT_AGENTS = {"jett", "omen", "yoru", "chamber", "raze", "neon","waylay","veto"}
 
     def __init__(self, agent_config_path: Optional[Path] = None):
         """
@@ -365,3 +367,23 @@ class StateValidator:
     def __repr__(self) -> str:
         """String representation."""
         return f"StateValidator(agents={len(self.agent_config)})"
+
+    
+    def validate_position_change(
+        self,
+        agent: str,
+        previous_region: Optional[str],
+        new_region: str,
+        map_locator,
+    ) -> bool:
+        """
+        Reject physically impossible region jumps between consecutive samples
+        (~0.23s apart), which usually mean a mismatched icon.
+
+        Movement agents are exempt (teleports, dashes).
+        """
+        if previous_region is None:
+            return True
+        if agent.lower() in self.MOVEMENT_AGENTS:
+            return True
+        return map_locator.are_adjacent(previous_region, new_region)

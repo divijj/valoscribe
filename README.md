@@ -1,25 +1,28 @@
 FILES TO CHANGE:
-detectors/cropper.py - started
-orchestration/detector_registry.py - done
-orchestration/game_state_manager.py - started
-orchestration/player_state_tracker.py - started
-orchestration/state_validator.py
-orchestration/output_writer.py
-commands/extract.py - started
-commands/detect.py
+detectors/cropper.py - done
+orchestration/detector_registry.py - done 
+orchestration/game_state_manager.py - almost done
+-> vlr meta data to match team - player
+orchestration/player_state_tracker.py - done
+orchestration/state_validator.py - done
+orchestration/output_writer.py - done
+commands/extract.py - almost done
+commands/detect.py - almost done
 config/champs2025_opening_games.json
 pyproject.toml
-tests/test_orchestration/test_output_writer.py, test_player_state_tracker.py
+tests/test_orchestration/test_output_writer.py, test_player_state_tracker.py - done
 
 FILES TO ADD:
-detectors/minimap_detector.py - started
-types/detections.py - started
-orchestration/map_locator.py
+detectors/minimap_detector.py - almost done 
+-> player stacking issue
+-> masking icon
+types/detections.py - done
+orchestration/map_locator.py - almost done
 config/maps/<map>/  (for each map)
 templates/minimap_agents/{attack,defense}/<agent>.png
 test files:
-tests/test_detectors/test_minimap_detector.py
-tests/test_orchestration/test_map_locator.py
+tests/test_detectors/test_minimap_detector.py -  
+tests/test_orchestration/test_map_locator.py - create file i guess
 
 # Valoscribe
 

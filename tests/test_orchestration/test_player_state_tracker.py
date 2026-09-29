@@ -301,3 +301,9 @@ class TestPlayerStateTracker:
         # State should be preserved (except moved to previous)
         assert tracker.current_state["health"] == 100
         assert tracker.current_state["armor"] == 50
+
+    # add below func
+    # def test_update_position_sets_coords(self, tracker):
+    # def test_region_change_requires_confirmation_frames(self, tracker):
+    # def test_confirmed_change_returns_region_enter_event(self, tracker):
+    # def test_reset_for_new_round_clears_position(self, tracker):

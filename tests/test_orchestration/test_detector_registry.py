@@ -71,7 +71,7 @@ class TestDetectorRegistry:
             "timer", "score", "spike", "health", "armor",
             "round",
             "preround_credits", "preround_agent", "preround_ability", "preround_ultimate",
-            "inround_ability", "inround_ultimate",
+            "inround_ability", "inround_ultimate", "inround_minimap"
             "killfeed",
         ]
 

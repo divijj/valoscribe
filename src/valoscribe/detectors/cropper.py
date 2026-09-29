@@ -328,7 +328,14 @@ class Cropper:
             "player_elements_preround": list(self.regions["individual_player_info_preround"].keys()),
         }
 
-    def crop_minimap(self,frame):
-        self.crop_simple_region(frame,"minimap")
-        #and then idk what to add buddy rip
-        
+    def crop_minimap(self, frame: np.ndarray) -> np.ndarray:
+        """
+        Crop the minimap region.
+
+        Args:
+            frame: Input frame (1080p)
+
+        Returns:
+            Cropped minimap as numpy array (450x450 for champs2025 config)
+        """
+        return self.crop_simple_region(frame, "minimap")

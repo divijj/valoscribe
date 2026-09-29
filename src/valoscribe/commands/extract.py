@@ -1322,7 +1322,7 @@ def extract_killfeed_crops(
         typer.secho(f"\nError: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
-@app.command(name="minimap-crops")
+# @app.command(name="minimap-crops")
 
 # def extract_minimap(
 #     video_path: Path = typer.Argument(..., help="Path to the video file to process"),
@@ -1360,4 +1360,3 @@ def extract_killfeed_crops(
 #         help="Time interval between samples in seconds (default: 10s)",
 #     ),
 # ) -> None:
-# finish idk 

@@ -430,3 +430,7 @@ class TestOutputWriter:
 
             assert event1["type"] == "death"
             assert event3["type"] == "round_end"
+
+    # implement below funcs
+    # def test_write_positions_creates_file_with_header(self, writer, tmp_path): ...
+    # def test_write_positions_appends_rows(self, writer): ...

@@ -84,6 +84,11 @@ class PlayerStateTracker:
         self.revival_candidate_count = 0
         self.revival_first_detection_timestamp: Optional[float] = None
 
+        self.REGION_CONFIRM_FRAMES = 2 
+        self.pending_region: Optional[str] = None
+        self.pending_region_count = 0
+
+
         # Death detection tracking (consecutive None health detections)
         self.death_candidate_count = 0
 
@@ -401,6 +406,13 @@ class PlayerStateTracker:
         self.last_detected_slot = None
         self.frames_icon_missing = 0
 
+        # added updating position and region 
+        self.current_state["x"] = None
+        self.current_state["y"] = None
+        self.current_state["region"] = None
+        self.pending_region = None
+        self.pending_region_count = 0
+
         # Note: round_start_timestamp NOT reset here - it's set when ACTIVE_ROUND begins
         # to align with UI fade-in timing
 
@@ -414,5 +426,36 @@ class PlayerStateTracker:
 
         return f"PlayerStateTracker({name}, {alive_status}, health={health})"
 
-    def update_position():
-        
+    def update_position(
+        self,
+        x_norm: float,
+        y_norm: float,
+        region: Optional[str],
+        timestamp: float,
+    ) -> Optional[dict]:
+        """
+        Update this player's minimap position.
+
+        Returns a region_enter event dict when a region change is confirmed
+        for REGION_CONFIRM_FRAMES consecutive frames, else None.
+        Debounce mirrors revival_candidate_count.
+        """
+        self.current_state["x"] = x_norm
+        self.current_state["y"] = y_norm
+
+        if region is None or region == self.current_state["region"]:
+            self.pending_region = None
+            self.pending_region_count = 0
+            return None
+
+        # TODO: count consecutive frames in the new region; on confirmation,
+        # set current_state["region"] and return the event below.
+        return {
+            "type": "region_enter",
+            "timestamp": timestamp,
+            "player": self.metadata.get("name"),
+            "team": self.metadata.get("team"),
+            "agent": self.metadata.get("agent"),
+            "region": region,
+            "previous_region": self.current_state["region"],
+        }
