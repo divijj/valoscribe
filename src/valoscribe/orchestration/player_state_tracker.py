@@ -450,7 +450,7 @@ class PlayerStateTracker:
 
         # TODO: count consecutive frames in the new region; on confirmation,
         # set current_state["region"] and return the event below.
-        
+
         if region == self.pending_region:
             self.pending_region_count += 1
         else:
@@ -459,11 +459,11 @@ class PlayerStateTracker:
 
         if self.pending_region_count < self.REGION_CONFIRM_FRAMES:
             return None
+
         previous = self.current_state["region"]
         self.current_state["region"] = region
         self.pending_region = None
         self.pending_region_count = 0
-        return {...}
 
         return {
             "type": "region_enter",
@@ -472,5 +472,5 @@ class PlayerStateTracker:
             "team": self.metadata.get("team"),
             "agent": self.metadata.get("agent"),
             "region": region,
-            "previous_region": self.current_state["region"],
+            "previous_region": previous,
         }

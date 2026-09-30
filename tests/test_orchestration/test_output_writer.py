@@ -434,5 +434,5 @@ class TestOutputWriter:
     # implement below funcs
     # def test_write_positions_creates_file_with_header(self, writer, tmp_path): ...
     # def test_write_positions_appends_rows(self, writer): ...
-    def test_write_positions_creates_file_with_header(self, writer, tmp_path):
+    # def test_write_positions_creates_file_with_header(self, writer, tmp_path):
         
