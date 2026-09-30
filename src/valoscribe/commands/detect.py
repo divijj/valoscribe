@@ -24,7 +24,9 @@ from valoscribe.detectors.preround_ability_detector import PreroundAbilityDetect
 from valoscribe.detectors.ultimate_detector import UltimateDetector
 from valoscribe.detectors.preround_ultimate_detector import PreroundUltimateDetector
 from valoscribe.detectors.killfeed_detector import KillfeedDetector
+from valoscribe.detectors.minimap_detector import MinimapDetector
 from valoscribe.orchestration.phase_detector import PhaseDetector, Phase
+from valoscribe.orchestration.map_locator import MapLocator
 from valoscribe.utils.ocr import OCREngine
 from valoscribe.utils.logger import setup_logging
 
@@ -4677,11 +4679,97 @@ def detect_agents_active_vod(
 @app.command(name="minimap")
 def detect_minimap(
     video_path: Path = typer.Argument(..., help="Path to the video file to process"),
-    frame_time: float = typer.Option(..., "--time", "-t", help="Timestamp to inspect"),
-    config_path: Optional[Path] = typer.Option(None, "--config", "-c"),
-    map_name: Optional[str] = typer.Option(None, "--map", help="Enable region lookup"),
-    save_path: Optional[Path] = typer.Option(None, "--save"),
+    frame_time: float = typer.Option(..., "--time", "-t", help="Timestamp to inspect (seconds)"),
+    config_path: Optional[Path] = typer.Option(None, "--config", "-c", help="Path to HUD config file"),
+    map_name: Optional[str] = typer.Option(None, "--map", help="Map name to enable region lookup"),
+    min_confidence: float = typer.Option(0.7, "--min-conf", help="Template match threshold"),
+    agents: Optional[str] = typer.Option(None, "--agents", help="Comma-separated agent filter"),
+    save_path: Optional[Path] = typer.Option(None, "--save", help="Save annotated minimap here"),
 ) -> None:
-        """Debug minimap detection: draw detected icons and their regions."""
-        # TODO: read the frame, run MinimapDetector.detect(), print agent/side/conf,
-        # draw circles at each detection, and (with --map) label the region via MapLocator.
+    """Debug minimap detection: draw detected icons and their regions."""
+    setup_logging()
+
+    if not video_path.exists():
+        typer.secho(f"Error: Video file not found: {video_path}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        cropper = Cropper(config_path=config_path) if config_path else Cropper()
+        detector = MinimapDetector(cropper, min_confidence=min_confidence)
+
+        if not detector.templates:
+            typer.secho(
+                "Warning: no minimap templates loaded - detection will return nothing.",
+                fg=typer.colors.YELLOW,
+            )
+
+        if agents:
+            agent_list = [a.strip().lower() for a in agents.split(",") if a.strip()]
+            detector.set_agent_filter(agent_list)
+            typer.echo(f"Agent filter: {agent_list}")
+
+        locator = MapLocator(map_name) if map_name else None
+
+        # Grab the single frame at the requested timestamp
+        frame = None
+        actual_time = frame_time
+        with VideoReader(video_path, start_time_sec=frame_time) as reader:
+            typer.echo(f"Reading video: {video_path}")
+            typer.echo(f"Resolution: {reader.width}x{reader.height}")
+
+            for frame_info in reader:
+                frame = frame_info.frame
+                actual_time = frame_info.timestamp_sec
+                break
+
+        if frame is None:
+            typer.secho(f"Error: No frame found at {frame_time}s", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+
+        detections = detector.detect(frame)
+        minimap = cropper.crop_minimap(frame)
+
+        typer.echo("\n" + "=" * 60)
+        typer.echo(f"MINIMAP DETECTION @ {actual_time:.2f}s")
+        typer.echo("=" * 60 + "\n")
+
+        if not detections:
+            typer.secho("No agents detected.", fg=typer.colors.YELLOW)
+
+        for det in detections:
+            line = (
+                f"{det.agent:12s} {det.side:8s} "
+                f"({det.x_px:6.1f}, {det.y_px:6.1f})  conf={det.confidence:.3f}"
+            )
+
+            if locator:
+                x_norm, y_norm = locator.to_normalized(det.x_px, det.y_px)
+                region = locator.region_at(x_norm, y_norm)
+                line += f"  norm=({x_norm:.3f}, {y_norm:.3f})  region={region or '?'}"
+
+            typer.secho(line, fg=typer.colors.GREEN)
+
+            # Annotate: circle at the icon centre, label above it
+            centre = (int(det.x_px), int(det.y_px))
+            colour = (0, 0, 255) if det.side == "attack" else (255, 200, 0)
+            cv2.circle(minimap, centre, 12, colour, 2)
+            cv2.putText(
+                minimap, det.agent, (centre[0] - 20, centre[1] - 15),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.35, colour, 1, cv2.LINE_AA,
+            )
+
+        typer.echo(f"\nTotal detections: {len(detections)}")
+
+        if save_path:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            cv2.imwrite(str(save_path), minimap)
+            typer.echo(f"Annotated minimap saved: {save_path}")
+        else:
+            cv2.imshow("Minimap detections", minimap)
+            typer.echo("\nPress any key to close the window...")
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
+    except Exception as e:
+        typer.secho(f"\nError: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)

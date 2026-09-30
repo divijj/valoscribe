@@ -1322,41 +1322,123 @@ def extract_killfeed_crops(
         typer.secho(f"\nError: {e}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1)
 
-# @app.command(name="minimap-crops")
+@app.command(name="minimap-crops")
+def extract_minimap_crops(
+    video_path: Path = typer.Argument(..., help="Path to the video file to process"),
+    output_dir: Path = typer.Option(
+        Path("./minimap_crops"),
+        "--output",
+        "-o",
+        help="Output directory for crop images",
+    ),
+    config_path: Optional[Path] = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to HUD config file (default: champs2025.json)",
+    ),
+    start_time: Optional[float] = typer.Option(
+        None,
+        "--start",
+        help="Start time in seconds",
+    ),
+    end_time: Optional[float] = typer.Option(
+        None,
+        "--end",
+        help="End time in seconds",
+    ),
+    interval: float = typer.Option(
+        10.0,
+        "--interval",
+        "-i",
+        help="Time interval between samples in seconds (default: 10s)",
+    ),
+    upscale: int = typer.Option(
+        4,
+        "--upscale",
+        "-u",
+        help="Also save an upscaled copy for cutting icon templates (0 to skip)",
+    ),
+) -> None:
+    """Extract minimap crops from a VOD for template creation and calibration."""
+    setup_logging()
 
-# def extract_minimap(
-#     video_path: Path = typer.Argument(..., help="Path to the video file to process"),
-#     output_dir: Path = typer.Option(Path("./minimap_crops"),
-#         "--output",
-#         "-o",
-#         help="Output directory for crop images",
-#     ),
-#     config_path: Optional[Path] = typer.Option(
-#         None,
-#         "--config",
-#         "-c",
-#         help="Path to HUD config file (default: champs2025.json)",
-#     ),
-#     entry_index: int = typer.Option(
-#         0,
-#         "--entry",
-#         "-e",
-#         help="Killfeed entry index to extract (0-9, or -1 for all entries)",
-#     ),
-#     start_time: Optional[float] = typer.Option(
-#         None,
-#         "--start",
-#         help="Start time in seconds",
-#     ),
-#     end_time: Optional[float] = typer.Option(
-#         None,
-#         "--end",
-#         help="End time in seconds",
-#     ),
-#     interval: float = typer.Option(
-#         10.0,
-#         "--interval",
-#         "-i",
-#         help="Time interval between samples in seconds (default: 10s)",
-#     ),
-# ) -> None:
+    if not video_path.exists():
+        typer.secho(f"Error: Video file not found: {video_path}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
+
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        if config_path:
+            cropper = Cropper(config_path=config_path)
+        else:
+            cropper = Cropper()
+
+        typer.echo(f"Using HUD config: {cropper.config['name']}")
+
+        fps = 1.0 / interval
+
+        with VideoReader(
+            video_path,
+            fps_filter=fps,
+            start_time_sec=start_time,
+            end_time_sec=end_time,
+        ) as reader:
+            typer.echo(f"Reading video: {video_path}")
+            typer.echo(f"Resolution: {reader.width}x{reader.height}")
+            typer.echo(f"FPS: {reader.fps:.2f}")
+            typer.echo(f"Duration: {reader.duration_sec:.2f}s")
+            typer.echo(f"Sampling interval: {interval}s")
+            typer.echo(f"Output directory: {output_dir}")
+
+            typer.echo("\n" + "=" * 60)
+            typer.echo("EXTRACTING MINIMAP CROPS")
+            typer.echo("=" * 60 + "\n")
+
+            frame_count = 0
+            saved_count = 0
+
+            for frame_info in reader:
+                minimap_crop = cropper.crop_minimap(frame_info.frame)
+
+                if minimap_crop.size > 0:
+                    timestamp_str = f"t{int(frame_info.timestamp_sec):05d}"
+                    frame_str = f"f{frame_info.frame_number:07d}"
+                    base_name = f"{timestamp_str}_{frame_str}"
+
+                    cv2.imwrite(str(output_dir / f"{base_name}_minimap.png"), minimap_crop)
+
+                    if upscale > 1:
+                        h, w = minimap_crop.shape[:2]
+                        enlarged = cv2.resize(
+                            minimap_crop,
+                            (w * upscale, h * upscale),
+                            interpolation=cv2.INTER_NEAREST,
+                        )
+                        cv2.imwrite(str(output_dir / f"{base_name}_minimap_{upscale}x.png"), enlarged)
+
+                    saved_count += 1
+
+                    typer.secho(
+                        f"[{frame_info.timestamp_sec:7.2f}s] Saved crop #{saved_count}",
+                        fg=typer.colors.GREEN,
+                    )
+
+                frame_count += 1
+
+            typer.echo("\n" + "=" * 60)
+            typer.echo("SUMMARY")
+            typer.echo("=" * 60)
+            typer.echo(f"Frames processed: {frame_count}")
+            typer.echo(f"Crops saved: {saved_count}")
+            typer.echo(f"Output directory: {output_dir}")
+            typer.echo(
+                "\nUse the upscaled crops to cut agent icon templates into "
+                "templates/minimap_agents/{attack,defense}/<agent>.png, and to pick "
+                "calibration landmarks (note pixel coords at 1x, not upscaled)."
+            )
+
+    except Exception as e:
+        typer.secho(f"\nError: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1)
