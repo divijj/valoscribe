@@ -42,8 +42,6 @@ class MapLocator:
 
         log.info(f"MapLocator loaded for {self.map_name}: {len(self.regions)} regions")
 
-    # ---------- loading ----------
-
     def _load_calibration(self) -> np.ndarray:
         """Build the affine transform from 3+ landmark pairs in calibration.json."""
         data = json.loads((self.map_dir / "calibration.json").read_text())
@@ -69,8 +67,6 @@ class MapLocator:
             if edge.get("bidirectional", True):
                 adj[edge["to"]].add(edge["from"])
         return adj
-
-    # ---------- lookups ----------
 
     def to_normalized(self, x_px: float, y_px: float) -> tuple[float, float]:
         """Minimap crop pixels -> normalized map coords in [0, 1]."""

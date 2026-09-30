@@ -56,7 +56,7 @@ class MinimapDetector:
                 continue
             for path in side_dir.glob("*.png"):
                 img = cv2.imread(str(path))
-                if img:
+                if img is not None:
                     templates[(path.stem, side)] = img
         return templates
 

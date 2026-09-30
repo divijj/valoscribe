@@ -1,7 +1,7 @@
 FILES TO CHANGE:
 detectors/cropper.py - done
 orchestration/detector_registry.py - done 
-orchestration/game_state_manager.py - almost done
+orchestration/game_state_manager.py 
 -> vlr meta data to match team - player
 orchestration/player_state_tracker.py - done
 orchestration/state_validator.py - done

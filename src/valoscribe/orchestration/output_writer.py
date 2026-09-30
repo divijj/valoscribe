@@ -50,7 +50,9 @@ class OutputWriter:
         self.positions_file: Optional[object] = None
         self.positions_writer: Optional[csv.DictWriter] = None
         self.positions_initialized = False
-
+        self.POSITION_COLUMNS = ["timestamp", "round_number", "player_index", "name", "team",
+        "agent", "side", "x_norm", "y_norm", "region", "zone", "confidence",
+        ]
 
         log.info(f"OutputWriter initialized: {output_dir}")
 
