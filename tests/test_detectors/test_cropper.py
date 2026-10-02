@@ -626,3 +626,27 @@ class TestGetConfigInfo:
         assert info["player_count"] == 10
         assert len(info["player_elements"]) == 10  # All player sub-elements
         assert len(info["player_elements_preround"]) == 10  # All pre-round player sub-elements
+
+
+class TestCropMinimap:
+    """Tests for crop_minimap."""
+
+    @pytest.fixture
+    def cropper(self, test_config, tmp_path):
+        config_file = tmp_path / "test_config.json"
+        with open(config_file, "w") as f:
+            json.dump(test_config, f)
+        return Cropper(config_path=config_file)
+
+    def test_crop_minimap_shape(self, cropper, test_frame):
+        """crop_minimap returns the configured minimap region."""
+        region = cropper.regions["minimap"]
+        crop = cropper.crop_minimap(test_frame)
+        assert crop.shape == (region["height"], region["width"], 3)
+
+    def test_crop_minimap_matches_simple_region(self, cropper, test_frame):
+        """crop_minimap is equivalent to crop_simple_region('minimap')."""
+        assert np.array_equal(
+            cropper.crop_minimap(test_frame),
+            cropper.crop_simple_region(test_frame, "minimap"),
+        )

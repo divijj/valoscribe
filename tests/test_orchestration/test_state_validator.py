@@ -256,8 +256,41 @@ class TestStateValidator:
                 assert "rechargeable" in config[ability]
                 assert config[ability]["max_charges"] > 0
 
-    # add funcs below
-    # def test_validate_position_change_allows_adjacent(self): ...
-    # def test_validate_position_change_rejects_distant(self): ...
-    # def test_movement_agents_exempt(self): ...
-    # def test_first_position_always_valid(self): ...
+
+    # minimap position validation
+
+    @pytest.fixture
+    def fake_locator(self):
+        """Minimal MapLocator stand-in: A Main <-> A Site only."""
+        class FakeLocator:
+            ADJACENT = {("A Main", "A Site"), ("A Site", "A Main")}
+
+            def are_adjacent(self, a, b):
+                return a == b or (a, b) in self.ADJACENT
+
+        return FakeLocator()
+
+    def test_first_position_always_valid(self, validator, fake_locator):
+        """With no previous region there is nothing to contradict."""
+        assert validator.validate_position_change("sova", None, "A Site", fake_locator)
+
+    def test_validate_position_change_allows_adjacent(self, validator, fake_locator):
+        """Moving to a connected region is plausible."""
+        assert validator.validate_position_change("sova", "A Main", "A Site", fake_locator)
+
+    def test_validate_position_change_allows_same_region(self, validator, fake_locator):
+        """Staying put is always valid."""
+        assert validator.validate_position_change("sova", "A Site", "A Site", fake_locator)
+
+    def test_validate_position_change_rejects_distant(self, validator, fake_locator):
+        """A jump between unconnected regions is a mismatched icon, not movement."""
+        assert not validator.validate_position_change("sova", "A Main", "B Site", fake_locator)
+
+    def test_movement_agents_exempt(self, validator, fake_locator):
+        """Teleports and dashes legitimately break adjacency."""
+        for agent in ("jett", "omen", "yoru", "chamber"):
+            assert validator.validate_position_change(agent, "A Main", "B Site", fake_locator)
+
+    def test_movement_agent_check_is_case_insensitive(self, validator, fake_locator):
+        """Agent names may arrive capitalised from metadata."""
+        assert validator.validate_position_change("Jett", "A Main", "B Site", fake_locator)

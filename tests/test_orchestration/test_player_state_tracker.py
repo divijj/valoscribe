@@ -302,8 +302,88 @@ class TestPlayerStateTracker:
         assert tracker.current_state["health"] == 100
         assert tracker.current_state["armor"] == 50
 
-    # add below func
-    # def test_update_position_sets_coords(self, tracker):
-    # def test_region_change_requires_confirmation_frames(self, tracker):
-    # def test_confirmed_change_returns_region_enter_event(self, tracker):
-    # def test_reset_for_new_round_clears_position(self, tracker):
+
+    # minimap position tracking
+
+    def test_update_position_sets_coords(self, tracker):
+        """Coordinates update on every call, regardless of region confirmation."""
+        tracker.update_position(0.25, 0.75, "A Main", timestamp=10.0)
+
+        assert tracker.current_state["x"] == 0.25
+        assert tracker.current_state["y"] == 0.75
+
+    def test_region_change_requires_confirmation_frames(self, tracker):
+        """A single frame in a new region is not enough to commit the change."""
+        event = tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0)
+
+        assert event is None
+        assert tracker.current_state["region"] is None
+        assert tracker.pending_region == "A Main"
+        assert tracker.pending_region_count == 1
+
+    def test_confirmed_change_returns_region_enter_event(self, tracker):
+        """Reaching REGION_CONFIRM_FRAMES commits the region and emits an event."""
+        for _ in range(tracker.REGION_CONFIRM_FRAMES - 1):
+            assert tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0) is None
+
+        event = tracker.update_position(0.2, 0.2, "A Main", timestamp=10.5)
+
+        assert event is not None
+        assert event["type"] == "region_enter"
+        assert event["region"] == "A Main"
+        assert event["previous_region"] is None
+        assert event["player"] == "brawk"
+        assert event["agent"] == "sova"
+        assert event["timestamp"] == 10.5
+        assert tracker.current_state["region"] == "A Main"
+        assert tracker.pending_region_count == 0
+
+    def test_previous_region_is_reported(self, tracker):
+        """A second confirmed move reports where the player came from."""
+        for _ in range(tracker.REGION_CONFIRM_FRAMES):
+            tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0)
+        for _ in range(tracker.REGION_CONFIRM_FRAMES - 1):
+            tracker.update_position(0.3, 0.3, "A Site", timestamp=11.0)
+
+        event = tracker.update_position(0.3, 0.3, "A Site", timestamp=11.5)
+
+        assert event["region"] == "A Site"
+        assert event["previous_region"] == "A Main"
+
+    def test_no_event_while_region_unchanged(self, tracker):
+        """Staying in a confirmed region emits nothing."""
+        for _ in range(tracker.REGION_CONFIRM_FRAMES):
+            tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0)
+
+        assert tracker.update_position(0.21, 0.21, "A Main", timestamp=10.5) is None
+
+    def test_flicker_resets_pending_region(self, tracker):
+        """Alternating regions never reach the confirmation threshold."""
+        tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0)
+        tracker.update_position(0.3, 0.3, "B Site", timestamp=10.2)
+
+        assert tracker.pending_region == "B Site"
+        assert tracker.pending_region_count == 1
+        assert tracker.current_state["region"] is None
+
+    def test_none_region_clears_pending(self, tracker):
+        """An undetected region (off-map / unlabeled) resets the debounce."""
+        tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0)
+        event = tracker.update_position(0.9, 0.9, None, timestamp=10.2)
+
+        assert event is None
+        assert tracker.pending_region is None
+        assert tracker.pending_region_count == 0
+
+    def test_reset_for_new_round_clears_position(self, tracker):
+        """Position state does not leak across rounds."""
+        for _ in range(tracker.REGION_CONFIRM_FRAMES):
+            tracker.update_position(0.2, 0.2, "A Main", timestamp=10.0)
+
+        tracker.reset_for_new_round()
+
+        assert tracker.current_state["x"] is None
+        assert tracker.current_state["y"] is None
+        assert tracker.current_state["region"] is None
+        assert tracker.pending_region is None
+        assert tracker.pending_region_count == 0

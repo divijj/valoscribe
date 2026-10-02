@@ -431,8 +431,67 @@ class TestOutputWriter:
             assert event1["type"] == "death"
             assert event3["type"] == "round_end"
 
-    # implement below funcs
-    # def test_write_positions_creates_file_with_header(self, writer, tmp_path): ...
-    # def test_write_positions_appends_rows(self, writer): ...
-    # def test_write_positions_creates_file_with_header(self, writer, tmp_path):
-        
+
+    # minimap positions
+
+    @pytest.fixture
+    def sample_positions(self):
+        """Two position rows from one frame."""
+        return [
+            {
+                "timestamp": 53.95, "round_number": 3, "player_index": 0,
+                "name": "brawk", "team": "NRG", "agent": "sova", "side": "attack",
+                "x_norm": 0.421, "y_norm": 0.188, "region": "A Main", "zone": "A",
+                "confidence": 0.912,
+            },
+            {
+                "timestamp": 53.95, "round_number": 3, "player_index": 7,
+                "name": "ara", "team": "GIANTX", "agent": "omen", "side": "defense",
+                "x_norm": 0.655, "y_norm": 0.702, "region": "B Site", "zone": "B",
+                "confidence": 0.843,
+            },
+        ]
+
+    def test_write_positions_creates_file_with_header(self, writer, temp_dir, sample_positions):
+        """First write creates the CSV and writes the header row."""
+        writer.write_positions(sample_positions)
+        writer.close()
+
+        positions_file = temp_dir / "minimap_positions.csv"
+        assert positions_file.exists()
+
+        with open(positions_file) as f:
+            rows = list(csv.DictReader(f))
+
+        assert list(rows[0].keys()) == writer.POSITION_COLUMNS
+        assert len(rows) == 2
+
+    def test_write_positions_appends_rows(self, writer, temp_dir, sample_positions):
+        """Later writes append instead of rewriting the header."""
+        writer.write_positions(sample_positions)
+        writer.write_positions(sample_positions)
+        writer.close()
+
+        with open(temp_dir / "minimap_positions.csv") as f:
+            rows = list(csv.DictReader(f))
+
+        assert len(rows) == 4
+
+    def test_write_positions_values_round_trip(self, writer, temp_dir, sample_positions):
+        """Values survive the CSV round trip."""
+        writer.write_positions(sample_positions)
+        writer.close()
+
+        with open(temp_dir / "minimap_positions.csv") as f:
+            rows = list(csv.DictReader(f))
+
+        assert rows[0]["name"] == "brawk"
+        assert rows[0]["region"] == "A Main"
+        assert rows[0]["side"] == "attack"
+        assert float(rows[0]["x_norm"]) == pytest.approx(0.421)
+        assert rows[1]["agent"] == "omen"
+
+    def test_no_positions_file_when_never_written(self, writer, temp_dir):
+        """Maps processed without minimap data produce no empty file."""
+        writer.close()
+        assert not (temp_dir / "minimap_positions.csv").exists()
