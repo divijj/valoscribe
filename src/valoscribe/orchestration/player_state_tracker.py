@@ -29,6 +29,9 @@ class PlayerStateTracker:
     # Grace period after round start (seconds) - no death detection during UI fade-in
     ROUND_START_GRACE_PERIOD = 2.0
 
+    REGION_CONFIRM_FRAMES = 2 
+
+
     # Class-level agent config cache (shared across all trackers)
     _agent_config_cache: Optional[dict] = None
 
@@ -84,7 +87,6 @@ class PlayerStateTracker:
         self.revival_candidate_count = 0
         self.revival_first_detection_timestamp: Optional[float] = None
 
-        self.REGION_CONFIRM_FRAMES = 2 
         self.pending_region: Optional[str] = None
         self.pending_region_count = 0
 
@@ -396,6 +398,9 @@ class PlayerStateTracker:
             "ability_3": None,
             "ultimate": None,
             "killer": None,  # Clear killer for new round
+            "x":None,
+            "y":None,
+            "region":None
         }
         self.previous_state = self.current_state.copy()
         self.revival_candidate_count = 0
@@ -418,14 +423,6 @@ class PlayerStateTracker:
 
         log.debug(f"Player {self.player_index}: State reset for new round")
 
-    def __repr__(self) -> str:
-        """String representation."""
-        name = self.metadata.get("name", f"Player{self.player_index}")
-        alive_status = "alive" if self.current_state["alive"] else "dead"
-        health = self.current_state.get("health", "?")
-
-        return f"PlayerStateTracker({name}, {alive_status}, health={health})"
-
     def update_position(
         self,
         x_norm: float,
@@ -447,9 +444,6 @@ class PlayerStateTracker:
             self.pending_region = None
             self.pending_region_count = 0
             return None
-
-        # TODO: count consecutive frames in the new region; on confirmation,
-        # set current_state["region"] and return the event below.
 
         if region == self.pending_region:
             self.pending_region_count += 1
@@ -474,3 +468,12 @@ class PlayerStateTracker:
             "region": region,
             "previous_region": previous,
         }
+    
+    def __repr__(self) -> str:
+        """String representation."""
+        name = self.metadata.get("name", f"Player{self.player_index}")
+        alive_status = "alive" if self.current_state["alive"] else "dead"
+        health = self.current_state.get("health", "?")
+
+        return f"PlayerStateTracker({name}, {alive_status}, health={health})"
+

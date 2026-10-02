@@ -17,12 +17,12 @@ detectors/minimap_detector.py - almost done
 -> player stacking issue
 -> masking icon
 types/detections.py - done
-orchestration/map_locator.py - almost done
+orchestration/map_locator.py - done
 config/maps/<map>/  (for each map)
 templates/minimap_agents/{attack,defense}/<agent>.png
 test files:
-tests/test_detectors/test_minimap_detector.py -  
-tests/test_orchestration/test_map_locator.py - create file i guess
+tests/test_detectors/test_minimap_detector.py -  done
+tests/test_orchestration/test_map_locator.py - done
 
 # Valoscribe
 

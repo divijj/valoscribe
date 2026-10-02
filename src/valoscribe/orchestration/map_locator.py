@@ -48,7 +48,6 @@ class MapLocator:
         src = np.float32([p["minimap_px"] for p in data["landmarks"][:3]])
         dst = np.float32([p["normalized"] for p in data["landmarks"][:3]])
         return cv2.getAffineTransform(src, dst)
-        # TODO: if a map's minimap rotates between sides, support a per-side transform.
 
     def _load_region_mask(self) -> np.ndarray:
         mask = cv2.imread(str(self.map_dir / "regions.png"), cv2.IMREAD_UNCHANGED)

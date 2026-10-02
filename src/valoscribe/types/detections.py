@@ -17,19 +17,6 @@ class RoundInfo(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="Detection confidence (0-1)")
     raw_text: Optional[str] = Field(None, description="Raw OCR text before parsing")
 
-class MinimapInfo(BaseModel):
-    """
-    info about the minimap i guess
-    
-    confidence
-    player info: agent/team to allow ring detection and player-agent mapping and location detection
-    player loc: extract location of player-agent and return x,y coords and map region
-    *
-    spike info: which site the spike is planted/dropped; could be a seperate function 
-
-    """
-    
-
 
 class ScoreInfo(BaseModel):
     """Information about team scores."""

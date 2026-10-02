@@ -13,6 +13,7 @@ from valoscribe.orchestration.detector_registry import DetectorRegistry
 from valoscribe.orchestration.state_validator import StateValidator
 from valoscribe.orchestration.event_collector import EventCollector
 from valoscribe.orchestration.output_writer import OutputWriter
+from valoscribe.orchestration.map_locator import MapLocator
 from valoscribe.orchestration.timer_manager import TimerManager
 from valoscribe.video.reader import VideoReader
 from valoscribe.utils.logger import get_logger
@@ -101,6 +102,16 @@ class GameStateManager:
         # Output writer
         self.output_writer = OutputWriter(output_dir=self.output_dir)
 
+        # Map geometry for minimap positions (optional - requires config/maps/<map>/)
+        map_name = self.vlr_metadata.get("map")
+        self.map_locator = None
+        if map_name:
+            try:
+                self.map_locator = MapLocator(map_name)
+            except FileNotFoundError:
+                log.warning(f"No map data for '{map_name}' - minimap positions disabled")
+        else:
+            log.warning("No map in metadata - minimap positions disabled")
         log.info("All components initialized successfully")
 
     def _initialize_player_trackers_from_agents(
@@ -586,6 +597,7 @@ class GameStateManager:
                 self.detector_registry.preround_agent_detector.set_agent_filter(agents_detected)
                 self.detector_registry.inround_agent_detector.set_agent_filter(agents_detected)
 
+                self.detector_registry.minimap_detector.set_agent_filter(agents_detected)
         # If player trackers are initialized, update abilities and ultimates
         # Map UI slot detections to actual player trackers based on agent detection
         if self.player_trackers is not None:
@@ -765,6 +777,10 @@ class GameStateManager:
             }, timestamp, frame)
             self.event_collector.add_event(event)
             log.info(f"Spike planted @ {timestamp:.2f}s")
+
+        # Minimap positions
+        self._process_minimap(timestamp, frame)
+
 
         # Detect states by searching for each player's agent icon
         # Loop through all player trackers and find them in the UI
@@ -1043,6 +1059,8 @@ class GameStateManager:
                     f"Round {self.round_manager.current_round} ended @ {timestamp:.2f}s: "
                     f"{winner} wins ({new_score['team1']}-{new_score['team2']})"
                 )
+ 
+        self._process_minimap(timestamp, frame)
 
         # Detect states by searching for each player's agent icon
         # Loop through all player trackers and find them in the UI
@@ -1329,6 +1347,70 @@ class GameStateManager:
                     f"({score_team1}-{score_team2})"
                 )
 
+
+    def _process_minimap(self, timestamp: float, frame: np.ndarray) -> None:
+        """
+        Detect player positions on the minimap, resolve them to trackers,
+        and write position rows plus region_enter events.
+
+        No-op when map data is unavailable.
+        """
+        if self.map_locator is None or self.player_trackers is None:
+            return
+
+        detections = self.detector_registry.minimap_detector.detect(frame)
+        rows = []
+
+        for detection in detections:
+            tracker = self._find_tracker_by_agent_side(detection.agent, detection.side)
+            if tracker is None:
+                continue
+
+            # Dead players have no minimap icon - a match here is a misdetection
+            if not tracker.current_state["alive"]:
+                continue
+
+            x_norm, y_norm = self.map_locator.to_normalized(detection.x_px, detection.y_px)
+            region = self.map_locator.region_at(x_norm, y_norm)
+
+            # Reject physically impossible jumps (likely a mismatched icon)
+            if region is not None and not self.state_validator.validate_position_change(
+                detection.agent,
+                tracker.current_state["region"],
+                region,
+                self.map_locator,
+            ):
+                log.debug(
+                    f"Rejected implausible move for {detection.agent}: "
+                    f"{tracker.current_state['region']} -> {region}"
+                )
+                continue
+
+            event = tracker.update_position(x_norm, y_norm, region, timestamp)
+            if event:
+                event["zone"] = self.map_locator.zone_of(region)
+                self.event_collector.add_event(
+                    self._add_timers_to_event(event, timestamp, frame)
+                )
+
+            rows.append({
+                "timestamp": timestamp,
+                "round_number": self.round_manager.current_round,
+                "player_index": tracker.player_index,
+                "name": tracker.metadata.get("name"),
+                "team": tracker.metadata.get("team"),
+                "agent": detection.agent,
+                "side": detection.side,
+                "x_norm": round(x_norm, 4),
+                "y_norm": round(y_norm, 4),
+                "region": region,
+                "zone": self.map_locator.zone_of(region) if region else None,
+                "confidence": round(detection.confidence, 3),
+            })
+
+        if rows:
+            self.output_writer.write_positions(rows)
+
     def _find_player_agent_slot(self, frame: np.ndarray, player_tracker) -> Optional[int]:
         """
         Search UI slots on the player's side to find which slot contains their agent icon.
@@ -1451,6 +1533,38 @@ class GameStateManager:
                 # Check if this player is on the killer's side
                 if player_side == kill_detection.killer_side:
                     return tracker
+
+        return None
+
+    def _find_tracker_by_agent_side(self, agent: str, side: str):
+        """
+        Find the player tracker for an agent on a given side.
+
+        Unique because a team cannot run duplicate agents; the side
+        disambiguates mirror comps (e.g. Sova on both teams).
+
+        Args:
+            agent: Agent name (lowercase)
+            side: "attack" or "defense"
+
+        Returns:
+            PlayerStateTracker, or None if not found
+        """
+        current_sides = self.round_manager.get_current_sides()
+
+        for tracker in self.player_trackers:
+            if tracker.metadata.get("agent") != agent:
+                continue
+
+            team_name = tracker.metadata.get("team")
+            team_key = None
+            if team_name == self.round_manager.team_names[0]:
+                team_key = "team1"
+            elif team_name == self.round_manager.team_names[1]:
+                team_key = "team2"
+
+            if team_key and current_sides[team_key] == side:
+                return tracker
 
         return None
 
